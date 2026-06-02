@@ -753,7 +753,7 @@ async function callClaude(history, files) {
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      model: "claude-opus-4-8",
+      model: "claude-haiku-4-5",
       max_tokens: 4096,
       system:
         "Siz foydali AI yordamchisiz. O'zbek, rus va ingliz tillarini bilasiz. Foydalanuvchi qaysi tilda gapirsa, o'sha tilda javob bering.",
@@ -825,7 +825,7 @@ async function callGPT(history, files) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "gpt-5.4",
+      model: "gpt-5.5-pro",
       max_tokens: 4096,
       messages,
     }),
