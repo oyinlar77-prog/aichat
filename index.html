@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Chat — Claude & GPT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #18181f;
+    --border: #2a2a35;
+    --border-glow: #3d3d55;
+    --text: #e8e8f0;
+    --text-muted: #7070a0;
+    --text-dim: #4a4a6a;
+    --claude-accent: #a78bfa;
+    --claude-glow: #7c3aed33;
+    --gpt-accent: #34d399;
+    --gpt-glow: #059f6b33;
+    --user-bg: #1e1e2e;
+    --ai-bg: #141420;
+    --danger: #f87171;
+    --radius: 16px;
+    --font-head: 'Syne', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    gap: 12px;
+    backdrop-filter: blur(12px);
+  }
+
+  .logo {
+    font-family: var(--font-head);
+    font-weight: 800;
+    font-size: 1.15rem;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, var(--claude-accent), var(--gpt-accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    white-space: nowrap;
+  }
+
+  /* ── MODEL SELECTOR ── */
+  .model-switcher {
+    display: flex;
+    gap: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 4px;
+  }
+
+  .model-btn {
+    font-family: var(--font-head);
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 7px 16px;
+    border-radius: 9px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  .model-btn .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+  }
+
+  .model-btn.active[data-model="claude"] {
+    background: var(--claude-glow);
+    color: var(--claude-accent);
+    box-shadow: 0 0 0 1px var(--claude-accent)40;
+  }
+  .model-btn.active[data-model="claude"] .dot { opacity: 1; }
+
+  .model-btn.active[data-model="gpt"] {
+    background: var(--gpt-glow);
+    color: var(--gpt-accent);
+    box-shadow: 0 0 0 1px var(--gpt-accent)40;
+  }
+  .model-btn.active[data-model="gpt"] .dot { opacity: 1; }
+
+  .model-btn:hover:not(.active) {
+    background: var(--border);
+    color: var(--text);
+  }
+
+  .clear-btn {
+    font-family: var(--font-head);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .clear-btn:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+    background: #f8717115;
+  }
+
+  /* ── MESSAGES ── */
+  #chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    scroll-behavior: smooth;
+  }
+
+  #chat::-webkit-scrollbar { width: 4px; }
+  #chat::-webkit-scrollbar-track { background: transparent; }
+  #chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Welcome screen */
+  .welcome {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 16px;
+    padding: 40px;
+    animation: fadeIn 0.6s ease;
+  }
+
+  .welcome-icon {
+    width: 64px; height: 64px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, var(--claude-glow), var(--gpt-glow));
+    border: 1px solid var(--border-glow);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem;
+  }
+
+  .welcome h2 {
+    font-family: var(--font-head);
+    font-size: 1.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--claude-accent), var(--gpt-accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .welcome p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    max-width: 360px;
+    font-weight: 300;
+  }
+
+  .welcome-chips {
+    display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+    margin-top: 8px;
+  }
+
+  .chip {
+    font-size: 0.78rem;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 400;
+  }
+  .chip:hover {
+    border-color: var(--claude-accent);
+    color: var(--claude-accent);
+    background: var(--claude-glow);
+  }
+
+  /* Message bubbles */
+  .msg {
+    display: flex;
+    gap: 12px;
+    max-width: 820px;
+    width: 100%;
+    margin: 0 auto;
+    animation: slideUp 0.3s ease;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; } to { opacity: 1; }
+  }
+
+  .msg.user { flex-direction: row-reverse; }
+
+  .avatar {
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    font-weight: 700;
+    font-family: var(--font-head);
+  }
+
+  .msg.user .avatar {
+    background: var(--user-bg);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+
+  .msg.ai[data-model="claude"] .avatar {
+    background: var(--claude-glow);
+    border: 1px solid var(--claude-accent)40;
+    color: var(--claude-accent);
+  }
+
+  .msg.ai[data-model="gpt"] .avatar {
+    background: var(--gpt-glow);
+    border: 1px solid var(--gpt-accent)40;
+    color: var(--gpt-accent);
+  }
+
+  .bubble {
+    flex: 1;
+    max-width: calc(100% - 46px);
+  }
+
+  .bubble-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    font-family: var(--font-head);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    color: var(--text-dim);
+  }
+
+  .msg.user .bubble-label { text-align: right; }
+  .msg.ai[data-model="claude"] .bubble-label { color: var(--claude-accent); }
+  .msg.ai[data-model="gpt"] .bubble-label { color: var(--gpt-accent); }
+
+  .bubble-content {
+    padding: 12px 16px;
+    border-radius: 14px;
+    font-size: 0.9rem;
+    line-height: 1.65;
+    font-weight: 300;
+    word-break: break-word;
+  }
+
+  .msg.user .bubble-content {
+    background: var(--user-bg);
+    border: 1px solid var(--border);
+    text-align: right;
+    color: var(--text);
+  }
+
+  .msg.ai .bubble-content {
+    background: var(--ai-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .msg.ai[data-model="claude"] .bubble-content {
+    border-color: var(--claude-accent)20;
+  }
+  .msg.ai[data-model="gpt"] .bubble-content {
+    border-color: var(--gpt-accent)20;
+  }
+
+  /* Code blocks */
+  .bubble-content pre {
+    background: #0d0d14;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    overflow-x: auto;
+    margin: 10px 0;
+    font-size: 0.82rem;
+    line-height: 1.6;
+  }
+
+  .bubble-content code {
+    font-family: 'Fira Code', monospace;
+    background: #0d0d14;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.82rem;
+    color: var(--claude-accent);
+  }
+
+  .bubble-content pre code {
+    background: transparent;
+    padding: 0;
+    color: #c0c0e0;
+  }
+
+  /* File attachments in messages */
+  .attachments {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-bottom: 8px;
+    justify-content: flex-end;
+  }
+
+  .msg.ai .attachments { justify-content: flex-start; }
+
+  .attach-badge {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 0.74rem;
+    padding: 4px 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-muted);
+    max-width: 180px;
+  }
+
+  .attach-badge span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Loading dots */
+  .typing {
+    display: flex; gap: 5px; align-items: center;
+    padding: 14px 16px;
+  }
+
+  .typing span {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--text-dim);
+    animation: bounce 1.2s infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.15s; }
+  .typing span:nth-child(3) { animation-delay: 0.3s; }
+
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-5px); opacity: 1; }
+  }
+
+  /* ── INPUT AREA ── */
+  .input-area {
+    padding: 16px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  /* File preview */
+  #file-preview {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .file-chip {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.78rem;
+    padding: 5px 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-muted);
+    animation: slideUp 0.2s ease;
+  }
+
+  .file-chip .icon { font-size: 1rem; }
+  .file-chip .name { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-chip .size { color: var(--text-dim); font-size: 0.7rem; }
+
+  .file-chip button {
+    background: none; border: none;
+    color: var(--text-dim); cursor: pointer;
+    font-size: 0.9rem; padding: 0 2px;
+    line-height: 1;
+    transition: color 0.15s;
+  }
+  .file-chip button:hover { color: var(--danger); }
+
+  /* Input row */
+  .input-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 8px 8px 8px 14px;
+    transition: border-color 0.2s;
+  }
+
+  .input-row:focus-within {
+    border-color: var(--border-glow);
+  }
+
+  #msg-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    resize: none;
+    max-height: 160px;
+    overflow-y: auto;
+    font-weight: 300;
+  }
+
+  #msg-input::placeholder { color: var(--text-dim); }
+
+  #msg-input::-webkit-scrollbar { width: 3px; }
+  #msg-input::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .input-actions {
+    display: flex; gap: 6px; align-items: flex-end;
+  }
+
+  .icon-btn {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .icon-btn:hover {
+    border-color: var(--border-glow);
+    color: var(--text);
+  }
+
+  .send-btn {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  #active-model-display { display: none; }
+
+  .send-btn[data-model="claude"] {
+    background: linear-gradient(135deg, #7c3aed, var(--claude-accent));
+    color: white;
+    box-shadow: 0 2px 12px var(--claude-glow);
+  }
+
+  .send-btn[data-model="gpt"] {
+    background: linear-gradient(135deg, #059669, var(--gpt-accent));
+    color: #0a0a0f;
+    box-shadow: 0 2px 12px var(--gpt-glow);
+  }
+
+  .send-btn:hover { transform: scale(1.05); }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* Hidden file input */
+  #file-input { display: none; }
+
+  /* ── HINT BAR ── */
+  .hint-bar {
+    text-align: center;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    padding: 6px 0 2px;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    header { padding: 10px 14px; }
+    .logo { font-size: 1rem; }
+    #chat { padding: 16px 12px; }
+    .input-area { padding: 12px; }
+    .model-btn { padding: 6px 10px; font-size: 0.72rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">✦ AI Chat</div>
+
+  <div class="model-switcher">
+    <button class="model-btn active" data-model="claude" onclick="setModel('claude')">
+      <span class="dot"></span>Claude Sonnet
+    </button>
+    <button class="model-btn" data-model="gpt" onclick="setModel('gpt')">
+      <span class="dot"></span>GPT-4.1
+    </button>
+  </div>
+
+  <button class="clear-btn" onclick="clearChat()">✕ Tozalash</button>
+</header>
+
+<!-- MESSAGES -->
+<div id="chat">
+  <div class="welcome" id="welcome">
+    <div class="welcome-icon">✦</div>
+    <h2>AI Chat</h2>
+    <p>Claude Sonnet yoki GPT-4.1 bilan suhbatlashing. Matn, fayl, rasm va hujjatlarni yuborishingiz mumkin.</p>
+    <div class="welcome-chips">
+      <div class="chip" onclick="quickMsg('Salom! O\'zing haqingda aytib ber')">👋 Tanishuv</div>
+      <div class="chip" onclick="quickMsg('Python da oddiy web server kodi yoz')">💻 Kod yoz</div>
+      <div class="chip" onclick="quickMsg('Bu rasmni tahlil qilib ber')">🖼️ Rasm tahlili</div>
+      <div class="chip" onclick="quickMsg('Menga qisqa hikoya yoz')">✍️ Hikoya</div>
+    </div>
+  </div>
+</div>
+
+<!-- INPUT -->
+<div class="input-area">
+  <div id="file-preview"></div>
+  <div class="input-row">
+    <input type="file" id="file-input" multiple accept="image/*,.pdf,.txt,.csv,.json,.js,.ts,.py,.html,.css,.md,.docx" />
+    <button class="icon-btn" onclick="document.getElementById('file-input').click()" title="Fayl yuklash">📎</button>
+    <textarea id="msg-input" rows="1" placeholder="Xabar yozing..." onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+    <div class="input-actions">
+      <button class="send-btn" id="send-btn" data-model="claude" onclick="sendMessage()">↑</button>
+    </div>
+  </div>
+  <div class="hint-bar">Enter — yuborish &nbsp;·&nbsp; Shift+Enter — yangi qator</div>
+</div>
+
+<script>
+  let currentModel = 'claude';
+  let messages = [];
+  let pendingFiles = [];
+  let isLoading = false;
+
+  // ── MODEL ──────────────────────────────────────────────────────────────
+  function setModel(m) {
+    currentModel = m;
+    document.querySelectorAll('.model-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.model === m);
+    });
+    document.getElementById('send-btn').dataset.model = m;
+  }
+
+  // ── FILES ──────────────────────────────────────────────────────────────
+  document.getElementById('file-input').addEventListener('change', e => {
+    const files = Array.from(e.target.files);
+    files.forEach(f => {
+      if (!pendingFiles.find(p => p.name === f.name && p.size === f.size)) {
+        pendingFiles.push(f);
+      }
+    });
+    renderFilePreview();
+    e.target.value = '';
+  });
+
+  function renderFilePreview() {
+    const preview = document.getElementById('file-preview');
+    preview.innerHTML = '';
+    pendingFiles.forEach((f, i) => {
+      const icon = getFileIcon(f.type, f.name);
+      const size = formatSize(f.size);
+      const chip = document.createElement('div');
+      chip.className = 'file-chip';
+      chip.innerHTML = `<span class="icon">${icon}</span><span class="name">${escHtml(f.name)}</span><span class="size">${size}</span><button onclick="removeFile(${i})" title="O'chirish">×</button>`;
+      preview.appendChild(chip);
+    });
+  }
+
+  function removeFile(i) {
+    pendingFiles.splice(i, 1);
+    renderFilePreview();
+  }
+
+  function getFileIcon(type, name) {
+    if (type.startsWith('image/')) return '🖼️';
+    if (type === 'application/pdf') return '📄';
+    if (name.endsWith('.py')) return '🐍';
+    if (name.endsWith('.js') || name.endsWith('.ts')) return '📜';
+    if (name.endsWith('.html')) return '🌐';
+    if (name.endsWith('.csv')) return '📊';
+    if (name.endsWith('.json')) return '⚙️';
+    return '📎';
+  }
+
+  function formatSize(b) {
+    if (b < 1024) return b + 'B';
+    if (b < 1024*1024) return (b/1024).toFixed(1) + 'KB';
+    return (b/1024/1024).toFixed(1) + 'MB';
+  }
+
+  // ── SEND ───────────────────────────────────────────────────────────────
+  async function sendMessage() {
+    if (isLoading) return;
+    const input = document.getElementById('msg-input');
+    const text = input.value.trim();
+    if (!text && pendingFiles.length === 0) return;
+
+    // Hide welcome
+    const welcome = document.getElementById('welcome');
+    if (welcome) welcome.remove();
+
+    // User message
+    const userMsg = { role: 'user', content: text || '(faylga qarang)' };
+    const filesToSend = [...pendingFiles];
+    messages.push(userMsg);
+    renderUserMsg(text, filesToSend);
+
+    input.value = '';
+    input.style.height = 'auto';
+    pendingFiles = [];
+    renderFilePreview();
+
+    // Loading
+    isLoading = true;
+    document.getElementById('send-btn').disabled = true;
+    const loadId = showTyping();
+
+    try {
+      const formData = new FormData();
+      formData.append('messages', JSON.stringify(messages));
+      formData.append('model', currentModel);
+      filesToSend.forEach(f => formData.append('files', f));
+
+      const res = await fetch('/api/chat', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      removeTyping(loadId);
+
+      if (data.error) throw new Error(data.error);
+
+      messages.push({ role: 'assistant', content: data.reply });
+      renderAIMsg(data.reply);
+    } catch (err) {
+      removeTyping(loadId);
+      renderError(err.message);
+    } finally {
+      isLoading = false;
+      document.getElementById('send-btn').disabled = false;
+    }
+  }
+
+  // ── RENDER ─────────────────────────────────────────────────────────────
+  function renderUserMsg(text, files) {
+    const chat = document.getElementById('chat');
+    const div = document.createElement('div');
+    div.className = 'msg user';
+    let attachHtml = '';
+    if (files.length > 0) {
+      attachHtml = `<div class="attachments">${files.map(f => `<div class="attach-badge">${getFileIcon(f.type,f.name)} <span>${escHtml(f.name)}</span></div>`).join('')}</div>`;
+    }
+    div.innerHTML = `
+      <div class="avatar">S</div>
+      <div class="bubble">
+        <div class="bubble-label">Siz</div>
+        ${attachHtml}
+        <div class="bubble-content">${text ? escHtml(text) : ''}</div>
+      </div>`;
+    chat.appendChild(div);
+    scrollBot();
+  }
+
+  function renderAIMsg(text) {
+    const chat = document.getElementById('chat');
+    const div = document.createElement('div');
+    div.className = 'msg ai';
+    div.dataset.model = currentModel;
+    const label = currentModel === 'claude' ? '✦ Claude Sonnet' : '⬡ GPT-4.1';
+    const av = currentModel === 'claude' ? 'C' : 'G';
+    div.innerHTML = `
+      <div class="avatar">${av}</div>
+      <div class="bubble">
+        <div class="bubble-label">${label}</div>
+        <div class="bubble-content">${formatMarkdown(text)}</div>
+      </div>`;
+    chat.appendChild(div);
+    scrollBot();
+  }
+
+  function renderError(msg) {
+    const chat = document.getElementById('chat');
+    const div = document.createElement('div');
+    div.className = 'msg ai';
+    div.dataset.model = currentModel;
+    div.innerHTML = `
+      <div class="avatar">!</div>
+      <div class="bubble">
+        <div class="bubble-label">Xatolik</div>
+        <div class="bubble-content" style="color:var(--danger)">⚠️ ${escHtml(msg)}</div>
+      </div>`;
+    chat.appendChild(div);
+    scrollBot();
+  }
+
+  function showTyping() {
+    const chat = document.getElementById('chat');
+    const id = 'typing-' + Date.now();
+    const div = document.createElement('div');
+    div.className = 'msg ai';
+    div.id = id;
+    div.dataset.model = currentModel;
+    const av = currentModel === 'claude' ? 'C' : 'G';
+    div.innerHTML = `
+      <div class="avatar">${av}</div>
+      <div class="bubble">
+        <div class="bubble-content typing">
+          <span></span><span></span><span></span>
+        </div>
+      </div>`;
+    chat.appendChild(div);
+    scrollBot();
+    return id;
+  }
+
+  function removeTyping(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  }
+
+  // ── UTILS ──────────────────────────────────────────────────────────────
+  function formatMarkdown(text) {
+    return text
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/```(\w*)\n?([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/^### (.+)$/gm, '<h3 style="font-family:var(--font-head);font-size:0.95rem;margin:10px 0 4px;color:var(--text)">$1</h3>')
+      .replace(/^## (.+)$/gm, '<h2 style="font-family:var(--font-head);font-size:1.05rem;margin:12px 0 6px;color:var(--text)">$1</h2>')
+      .replace(/^- (.+)$/gm, '<li style="margin-left:16px;margin-bottom:2px">$1</li>')
+      .replace(/\n/g, '<br>');
+  }
+
+  function escHtml(t) {
+    return (t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function scrollBot() {
+    const chat = document.getElementById('chat');
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  function quickMsg(text) {
+    document.getElementById('msg-input').value = text;
+    sendMessage();
+  }
+
+  function clearChat() {
+    messages = [];
+    pendingFiles = [];
+    renderFilePreview();
+    const chat = document.getElementById('chat');
+    chat.innerHTML = `
+      <div class="welcome" id="welcome">
+        <div class="welcome-icon">✦</div>
+        <h2>AI Chat</h2>
+        <p>Claude Sonnet yoki GPT-4.1 bilan suhbatlashing. Matn, fayl, rasm va hujjatlarni yuborishingiz mumkin.</p>
+        <div class="welcome-chips">
+          <div class="chip" onclick="quickMsg('Salom! O\\'zing haqingda aytib ber')">👋 Tanishuv</div>
+          <div class="chip" onclick="quickMsg('Python da oddiy web server kodi yoz')">💻 Kod yoz</div>
+          <div class="chip" onclick="quickMsg('Bu rasmni tahlil qilib ber')">🖼️ Rasm tahlili</div>
+          <div class="chip" onclick="quickMsg('Menga qisqa hikoya yoz')">✍️ Hikoya</div>
+        </div>
+      </div>`;
+  }
+</script>
+</body>
+</html>
