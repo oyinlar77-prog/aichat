@@ -34,35 +34,38 @@ def generate_code():
 
 def create_certificate(name, volume, date, code):
     try:
-        # Fayl mavjudligini tekshirish
-        if not os.path.exists(TEMPLATE_PATH):
-            print(f"❌ Template topilmadi! Fayl nomi: {TEMPLATE_PATH}")
-            print(f"Joriy papkadagi fayllar: {os.listdir('.')}")
-            return None
-
         img = Image.open(TEMPLATE_PATH)
         draw = ImageDraw.Draw(img)
 
+        # Kattaroq shriftlar
         try:
-            font_big = ImageFont.truetype("arial.ttf", 55)
-            font_small = ImageFont.truetype("arial.ttf", 40)
+            font_name = ImageFont.truetype("arial.ttf", 65)      # Ism uchun
+            font_other = ImageFont.truetype("arial.ttf", 48)     # Qolgan matnlar uchun
         except:
-            font_big = ImageFont.load_default()
-            font_small = ImageFont.load_default()
+            font_name = ImageFont.load_default()
+            font_other = ImageFont.load_default()
 
-        draw.text((420, 580), name, fill=(0, 0, 0), font=font_big)
-        draw.text((420, 730), volume, fill=(0, 0, 0), font=font_small)
-        draw.text((420, 800), date, fill=(0, 0, 0), font=font_small)
-        draw.text((280, 1030), code, fill=(180, 0, 0), font=font_small)
+        # ================= MATNLARNI TO'G'RI JOYGA QO'YISH =================
+        # Ism va familiya (markazga yaqin)
+        draw.text((380, 520), name, fill=(0, 0, 0), font=font_name)
+
+        # Jild / Son
+        draw.text((380, 700), volume, fill=(0, 0, 0), font=font_other)
+
+        # Sana
+        draw.text((380, 770), date, fill=(0, 0, 0), font=font_other)
+
+        # Verification Code (pastki qism, qizil rangda, kattaroq)
+        draw.text((320, 1010), code, fill=(180, 0, 0), font=font_other)
 
         filename = f"cert_{code}.png"
         img.save(filename)
         return filename
     except Exception as e:
-        print("Xatolik:", str(e))
+        print("Xatolik:", e)
         return None
 
-# Qolgan kodlar (oldindagidek qoladi)
+# ====================== QOLGAN KOD (o'zgarmaydi) ======================
 @dp.message(Command("start"))
 async def start(message: types.Message):
     if message.from_user.id == ADMIN_ID:
@@ -82,11 +85,13 @@ async def process(message: types.Message):
 
     if user_id in user_states:
         state = user_states[user_id]
+        
         if state.get("step") == "name":
             state["name"] = text
             state["step"] = "volume"
-            await message.answer("📚 Jild / Son kiriting:")
+            await message.answer("📚 Jild / Son kiriting (masalan: 1(3)):")
             return
+            
         elif state.get("step") == "volume":
             state["volume"] = text
             code = generate_code()
@@ -108,22 +113,23 @@ async def process(message: types.Message):
                 await message.answer_photo(types.FSInputFile(filename), caption=f"✅ Sertifikat tayyor!\nKod: `{code}`", parse_mode="Markdown")
                 os.remove(filename)
             else:
-                await message.answer("❌ Rasm yaratishda xatolik bo'ldi.")
+                await message.answer("❌ Rasm yaratishda xatolik.")
             
             del user_states[user_id]
             return
 
+    # Tekshirish
     if len(text) == 9 and text[4] == "-":
         try:
             with open(DATA_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
             if text in data:
                 d = data[text]
-                await message.answer(f"✅ Haqiqiy!\n👤 {d['name']}\n📚 {d['volume']}\n📅 {d['date']}")
+                await message.answer(f"✅ Haqiqiy sertifikat!\n\n👤 {d['name']}\n📚 {d['volume']}\n📅 {d['date']}")
             else:
                 await message.answer("❌ Kod topilmadi.")
         except:
-            await message.answer("❌ Xatolik.")
+            await message.answer("❌ Xatolik yuz berdi.")
 
 async def main():
     print("Bot ishga tushdi...")
