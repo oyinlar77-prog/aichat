@@ -10,7 +10,6 @@ from aiogram.filters import Command
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from PIL import Image, ImageDraw, ImageFont
 
-# ====================== SOZLAMALAR ======================
 TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID"))
 
@@ -22,7 +21,6 @@ DATA_FILE = "certificates.json"
 
 user_states = {}
 
-# ====================== TUGMALAR ======================
 admin_kb = ReplyKeyboardMarkup(
     keyboard=[[KeyboardButton(text="🛠 Sertifikat yaratish")], 
               [KeyboardButton(text="✅ Sertifikatni tekshirish")]],
@@ -35,42 +33,32 @@ def generate_code():
     chars = string.ascii_uppercase + string.digits
     return ''.join(random.choices(chars, k=4)) + "-" + ''.join(random.choices(chars, k=4))
 
-# ====================== SERTIFIKAT YARATISH (ENG ANIQ VERSIYA) ======================
 def create_certificate(name, volume, date, code):
     try:
         img = Image.open(TEMPLATE_PATH)
         draw = ImageDraw.Draw(img)
 
-        # Shriftlar
+        # Kattaroq shriftlar
         try:
-            font_name = ImageFont.truetype("arial.ttf", 78)   # Ism-familya uchun
-            font_text = ImageFont.truetype("arial.ttf", 52)   # Asosiy matn
-            font_small = ImageFont.truetype("arial.ttf", 46)  # Jild va Sana uchun
+            font_name = ImageFont.truetype("arial.ttf", 85)   # Ism uchun juda katta
+            font_info = ImageFont.truetype("arial.ttf", 52)   # Jild, Sana, Code uchun
         except:
             font_name = ImageFont.load_default()
-            font_text = ImageFont.load_default()
-            font_small = ImageFont.load_default()
+            font_info = ImageFont.load_default()
 
-        # =================== ANIQ JOYLASHUV ===================
+        # ================= ANIQ JOYLASHUV =================
 
-        # 1. Ism va Familiya
-        draw.text((385, 485), name, fill=(0, 0, 0), font=font_name)
+        # Ism va Familiya (markazda, katta)
+        draw.text((370, 490), name, fill=(0, 0, 0), font=font_name)
 
-        # 2. Asosiy o‘zbekcha matn (ikki qator)
-        draw.text((235, 655), "ilmiy-fan rivojiga o‘zining dolzarb va sifatli ilmiy maqolasi bilan", 
-                  fill=(0, 0, 0), font=font_text)
-        
-        draw.text((295, 715), "hissa qo‘shganligi uchun ushbu sertifikat bilan taqdirlanadi.", 
-                  fill=(0, 0, 0), font=font_text)
+        # Jild / Son
+        draw.text((380, 780), volume, fill=(0, 0, 0), font=font_info)
 
-        # 3. Jild / Son
-        draw.text((380, 815), volume, fill=(0, 0, 0), font=font_small)
+        # Sana
+        draw.text((380, 850), date, fill=(0, 0, 0), font=font_info)
 
-        # 4. Sana
-        draw.text((380, 875), date, fill=(0, 0, 0), font=font_small)
-
-        # 5. Verification Code
-        draw.text((295, 1035), code, fill=(180, 0, 0), font=font_small)
+        # Verification Code
+        draw.text((295, 1035), code, fill=(180, 0, 0), font=font_info)
 
         filename = f"cert_{code}.png"
         img.save(filename)
@@ -79,7 +67,7 @@ def create_certificate(name, volume, date, code):
         print("Xatolik:", e)
         return None
 
-# ====================== QOLGAN KOD ======================
+# ====================== HANDLERLAR ======================
 @dp.message(Command("start"))
 async def start(message: types.Message):
     if message.from_user.id == ADMIN_ID:
