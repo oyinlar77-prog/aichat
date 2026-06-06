@@ -17,8 +17,7 @@ ADMIN_ID = int(os.getenv("ADMIN_ID"))
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# !!! Rasm nomi shu bo'lishi kerak !!!
-TEMPLATE_PATH = "certificate_template.png.jpg"
+TEMPLATE_PATH = "certificate_template.png"   # ← To'g'ri nom
 DATA_FILE = "certificates.json"
 
 user_states = {}
@@ -42,30 +41,31 @@ def generate_code():
 def create_certificate(name, volume, date, code):
     try:
         if not os.path.exists(TEMPLATE_PATH):
-            print("Template topilmadi!")
+            print("❌ Template fayli topilmadi!")
             return None
-            
+
         img = Image.open(TEMPLATE_PATH)
         draw = ImageDraw.Draw(img)
-        
+
+        # Shrift
         try:
-            font = ImageFont.truetype("arial.ttf", 55)
-            small_font = ImageFont.truetype("arial.ttf", 40)
+            font_big = ImageFont.truetype("arial.ttf", 58)
+            font_small = ImageFont.truetype("arial.ttf", 42)
         except:
-            font = ImageFont.load_default()
-            small_font = ImageFont.load_default()
+            font_big = ImageFont.load_default()
+            font_small = ImageFont.load_default()
 
         # Ism-familya
-        draw.text((450, 580), name, fill=(0, 0, 0), font=font)
+        draw.text((420, 580), name, fill=(0, 0, 0), font=font_big)
         
         # Jild / Son
-        draw.text((450, 730), volume, fill=(0, 0, 0), font=small_font)
+        draw.text((420, 730), volume, fill=(0, 0, 0), font=font_small)
         
         # Sana
-        draw.text((450, 800), date, fill=(0, 0, 0), font=small_font)
+        draw.text((420, 800), date, fill=(0, 0, 0), font=font_small)
         
         # Verification Code
-        draw.text((280, 1030), code, fill=(180, 0, 0), font=small_font)
+        draw.text((280, 1030), code, fill=(180, 0, 0), font=font_small)
 
         filename = f"cert_{code}.png"
         img.save(filename)
@@ -98,7 +98,7 @@ async def process(message: types.Message):
         if state.get("step") == "name":
             state["name"] = text
             state["step"] = "volume"
-            await message.answer("📚 Jild / Son kiriting (masalan: 1(3)):")
+            await message.answer("📚 Jild / Son kiriting (masalan: 1(3) yoki Vol.1 No.3):")
             return
             
         elif state.get("step") == "volume":
@@ -108,7 +108,7 @@ async def process(message: types.Message):
             
             filename = create_certificate(state["name"], text, date, code)
             
-            # Ma'lumot saqlash
+            # Saqlash
             cert = {"name": state["name"], "volume": text, "date": date, "code": code}
             if os.path.exists(DATA_FILE):
                 with open(DATA_FILE, "r", encoding="utf-8") as f:
@@ -119,17 +119,18 @@ async def process(message: types.Message):
             with open(DATA_FILE, "w", encoding="utf-8") as f:
                 json.dump(all_data, f, ensure_ascii=False, indent=2)
             
-            if filename and os.path.exists(filename):
+            if filename:
                 await message.answer_photo(types.FSInputFile(filename), 
-                                         caption=f"✅ Sertifikat tayyor!\n\nKod: `{code}`", parse_mode="Markdown")
-                os.remove(filename)
+                                         caption=f"✅ Sertifikat tayyorlandi!\n\nKod: `{code}`", parse_mode="Markdown")
+                if os.path.exists(filename):
+                    os.remove(filename)
             else:
-                await message.answer("❌ Rasm yaratishda xatolik bo'ldi. Template faylini tekshiring.")
+                await message.answer("❌ Rasm yaratishda xatolik bo'ldi.")
             
             del user_states[user_id]
             return
 
-    # Tekshirish
+    # Tekshirish qismi
     if len(text) == 9 and text[4] == "-":
         try:
             with open(DATA_FILE, "r", encoding="utf-8") as f:
@@ -143,7 +144,7 @@ async def process(message: types.Message):
             await message.answer("❌ Xatolik yuz berdi.")
 
 async def main():
-    print("Bot ishga tushdi...")
+    print("✅ Bot muvaffaqiyatli ishga tushdi!")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
