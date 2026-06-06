@@ -17,7 +17,8 @@ ADMIN_ID = int(os.getenv("ADMIN_ID"))
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-TEMPLATE_PATH = "certificate_template.png"
+# !!! Rasm nomi shu bo'lishi kerak !!!
+TEMPLATE_PATH = "certificate_template.png.jpg"
 DATA_FILE = "certificates.json"
 
 user_states = {}
@@ -40,34 +41,37 @@ def generate_code():
 # ====================== SERTIFIKAT YARATISH ======================
 def create_certificate(name, volume, date, code):
     try:
+        if not os.path.exists(TEMPLATE_PATH):
+            print("Template topilmadi!")
+            return None
+            
         img = Image.open(TEMPLATE_PATH)
         draw = ImageDraw.Draw(img)
         
-        # Shrift (agar yo'q bo'lsa oddiy shriftdan foydalanadi)
         try:
-            font = ImageFont.truetype("arial.ttf", 60)
-            small_font = ImageFont.truetype("arial.ttf", 45)
+            font = ImageFont.truetype("arial.ttf", 55)
+            small_font = ImageFont.truetype("arial.ttf", 40)
         except:
             font = ImageFont.load_default()
             small_font = ImageFont.load_default()
 
         # Ism-familya
-        draw.text((450, 620), name, fill=(0, 0, 0), font=font)
+        draw.text((450, 580), name, fill=(0, 0, 0), font=font)
         
-        # Jild/Son
-        draw.text((450, 780), volume, fill=(0, 0, 0), font=small_font)
+        # Jild / Son
+        draw.text((450, 730), volume, fill=(0, 0, 0), font=small_font)
         
         # Sana
-        draw.text((450, 850), date, fill=(0, 0, 0), font=small_font)
+        draw.text((450, 800), date, fill=(0, 0, 0), font=small_font)
         
         # Verification Code
-        draw.text((280, 1050), code, fill=(200, 0, 0), font=small_font)
+        draw.text((280, 1030), code, fill=(180, 0, 0), font=small_font)
 
         filename = f"cert_{code}.png"
         img.save(filename)
         return filename
     except Exception as e:
-        print("Rasm yaratishda xatolik:", e)
+        print("Rasm yaratish xatosi:", e)
         return None
 
 # ====================== HANDLERLAR ======================
@@ -91,20 +95,20 @@ async def process(message: types.Message):
     if user_id in user_states:
         state = user_states[user_id]
         
-        if state["step"] == "name":
+        if state.get("step") == "name":
             state["name"] = text
             state["step"] = "volume"
             await message.answer("📚 Jild / Son kiriting (masalan: 1(3)):")
+            return
             
-        elif state["step"] == "volume":
+        elif state.get("step") == "volume":
             state["volume"] = text
             code = generate_code()
             date = datetime.now().strftime("%d.%m.%Y")
             
-            # Rasm yaratish
             filename = create_certificate(state["name"], text, date, code)
             
-            # Ma'lumotni saqlash
+            # Ma'lumot saqlash
             cert = {"name": state["name"], "volume": text, "date": date, "code": code}
             if os.path.exists(DATA_FILE):
                 with open(DATA_FILE, "r", encoding="utf-8") as f:
@@ -116,16 +120,17 @@ async def process(message: types.Message):
                 json.dump(all_data, f, ensure_ascii=False, indent=2)
             
             if filename and os.path.exists(filename):
-                await message.answer_photo(photo=types.FSInputFile(filename), 
-                                         caption=f"✅ Sertifikat tayyor!\nKod: `{code}`", parse_mode="Markdown")
-                os.remove(filename)  # faylni tozalash
+                await message.answer_photo(types.FSInputFile(filename), 
+                                         caption=f"✅ Sertifikat tayyor!\n\nKod: `{code}`", parse_mode="Markdown")
+                os.remove(filename)
             else:
-                await message.answer("❌ Rasm yaratishda xatolik bo'ldi.")
+                await message.answer("❌ Rasm yaratishda xatolik bo'ldi. Template faylini tekshiring.")
             
             del user_states[user_id]
+            return
 
-    # Tekshirish qismi
-    elif len(text) == 9 and text[4] == "-":
+    # Tekshirish
+    if len(text) == 9 and text[4] == "-":
         try:
             with open(DATA_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -137,7 +142,6 @@ async def process(message: types.Message):
         except:
             await message.answer("❌ Xatolik yuz berdi.")
 
-# ====================== ISHGA TUSHIRISH ======================
 async def main():
     print("Bot ishga tushdi...")
     await dp.start_polling(bot)
