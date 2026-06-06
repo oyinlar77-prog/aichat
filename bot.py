@@ -24,10 +24,8 @@ user_states = {}
 
 # ====================== TUGMALAR ======================
 admin_kb = ReplyKeyboardMarkup(
-    keyboard=[
-        [KeyboardButton(text="🛠 Sertifikat yaratish")],
-        [KeyboardButton(text="✅ Sertifikatni tekshirish")]
-    ], 
+    keyboard=[[KeyboardButton(text="🛠 Sertifikat yaratish")], 
+              [KeyboardButton(text="✅ Sertifikatni tekshirish")]],
     resize_keyboard=True
 )
 
@@ -37,49 +35,51 @@ def generate_code():
     chars = string.ascii_uppercase + string.digits
     return ''.join(random.choices(chars, k=4)) + "-" + ''.join(random.choices(chars, k=4))
 
-# ====================== SERTIFIKAT YARATISH (YAXSHILANGAN) ======================
+# ====================== SERTIFIKAT YARATISH (ENG ANIQ VERSIYA) ======================
 def create_certificate(name, volume, date, code):
     try:
         img = Image.open(TEMPLATE_PATH)
         draw = ImageDraw.Draw(img)
 
-        # Shriftlar (kattaroq qilindi)
+        # Shriftlar
         try:
-            font_name = ImageFont.truetype("arial.ttf", 75)   # Ism uchun
-            font_main = ImageFont.truetype("arial.ttf", 52)   # Asosiy matn
-            font_small = ImageFont.truetype("arial.ttf", 45)  # Kichik matnlar
+            font_name = ImageFont.truetype("arial.ttf", 78)   # Ism-familya uchun
+            font_text = ImageFont.truetype("arial.ttf", 52)   # Asosiy matn
+            font_small = ImageFont.truetype("arial.ttf", 46)  # Jild va Sana uchun
         except:
             font_name = ImageFont.load_default()
-            font_main = ImageFont.load_default()
+            font_text = ImageFont.load_default()
             font_small = ImageFont.load_default()
 
-        # Ism va Familiya
-        draw.text((380, 480), name, fill=(0, 0, 0), font=font_name)
+        # =================== ANIQ JOYLASHUV ===================
 
-        # Asosiy o‘zbekcha matn (ikki qator)
-        draw.text((240, 660), "ilmiy-fan rivojiga o‘zining dolzarb va sifatli ilmiy maqolasi bilan", 
-                  fill=(0, 0, 0), font=font_main)
+        # 1. Ism va Familiya
+        draw.text((385, 485), name, fill=(0, 0, 0), font=font_name)
+
+        # 2. Asosiy o‘zbekcha matn (ikki qator)
+        draw.text((235, 655), "ilmiy-fan rivojiga o‘zining dolzarb va sifatli ilmiy maqolasi bilan", 
+                  fill=(0, 0, 0), font=font_text)
         
-        draw.text((310, 720), "hissa qo‘shganligi uchun ushbu sertifikat bilan taqdirlanadi.", 
-                  fill=(0, 0, 0), font=font_main)
+        draw.text((295, 715), "hissa qo‘shganligi uchun ushbu sertifikat bilan taqdirlanadi.", 
+                  fill=(0, 0, 0), font=font_text)
 
-        # Jild / Son
-        draw.text((380, 820), volume, fill=(0, 0, 0), font=font_small)
+        # 3. Jild / Son
+        draw.text((380, 815), volume, fill=(0, 0, 0), font=font_small)
 
-        # Sana
-        draw.text((380, 880), date, fill=(0, 0, 0), font=font_small)
+        # 4. Sana
+        draw.text((380, 875), date, fill=(0, 0, 0), font=font_small)
 
-        # Verification Code (pastda, qizil va ko‘zga tashlanadigan)
-        draw.text((300, 1040), code, fill=(180, 0, 0), font=font_main)
+        # 5. Verification Code
+        draw.text((295, 1035), code, fill=(180, 0, 0), font=font_small)
 
         filename = f"cert_{code}.png"
         img.save(filename)
         return filename
     except Exception as e:
-        print("Rasm yaratish xatosi:", e)
+        print("Xatolik:", e)
         return None
 
-# ====================== HANDLERLAR ======================
+# ====================== QOLGAN KOD ======================
 @dp.message(Command("start"))
 async def start(message: types.Message):
     if message.from_user.id == ADMIN_ID:
@@ -113,7 +113,6 @@ async def process(message: types.Message):
             
             filename = create_certificate(state["name"], text, date, code)
             
-            # Saqlash
             cert = {"name": state["name"], "volume": text, "date": date, "code": code}
             if os.path.exists(DATA_FILE):
                 with open(DATA_FILE, "r", encoding="utf-8") as f:
@@ -129,12 +128,12 @@ async def process(message: types.Message):
                                          caption=f"✅ Sertifikat tayyor!\nKod: `{code}`", parse_mode="Markdown")
                 os.remove(filename)
             else:
-                await message.answer("❌ Rasm yaratishda xatolik bo'ldi.")
+                await message.answer("❌ Rasm yaratishda xatolik.")
             
             del user_states[user_id]
             return
 
-    # Sertifikatni tekshirish
+    # Tekshirish
     if len(text) == 9 and text[4] == "-":
         try:
             with open(DATA_FILE, "r", encoding="utf-8") as f:
@@ -148,7 +147,7 @@ async def process(message: types.Message):
             await message.answer("❌ Xatolik yuz berdi.")
 
 async def main():
-    print("✅ Bot muvaffaqiyatli ishga tushdi!")
+    print("✅ Bot ishga tushdi!")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
