@@ -10,6 +10,7 @@ from aiogram.filters import Command
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from PIL import Image, ImageDraw, ImageFont
 
+# ====================== SOZLAMALAR ======================
 TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID"))
 
@@ -21,8 +22,12 @@ DATA_FILE = "certificates.json"
 
 user_states = {}
 
+# ====================== TUGMALAR ======================
 admin_kb = ReplyKeyboardMarkup(
-    keyboard=[[KeyboardButton(text="🛠 Sertifikat yaratish")], [KeyboardButton(text="✅ Sertifikatni tekshirish")]],
+    keyboard=[
+        [KeyboardButton(text="🛠 Sertifikat yaratish")],
+        [KeyboardButton(text="✅ Sertifikatni tekshirish")]
+    ], 
     resize_keyboard=True
 )
 
@@ -32,40 +37,49 @@ def generate_code():
     chars = string.ascii_uppercase + string.digits
     return ''.join(random.choices(chars, k=4)) + "-" + ''.join(random.choices(chars, k=4))
 
+# ====================== SERTIFIKAT YARATISH (YAXSHILANGAN) ======================
 def create_certificate(name, volume, date, code):
     try:
         img = Image.open(TEMPLATE_PATH)
         draw = ImageDraw.Draw(img)
 
-        # Kattaroq shriftlar
+        # Shriftlar (kattaroq qilindi)
         try:
-            font_name = ImageFont.truetype("arial.ttf", 65)      # Ism uchun
-            font_other = ImageFont.truetype("arial.ttf", 48)     # Qolgan matnlar uchun
+            font_name = ImageFont.truetype("arial.ttf", 75)   # Ism uchun
+            font_main = ImageFont.truetype("arial.ttf", 52)   # Asosiy matn
+            font_small = ImageFont.truetype("arial.ttf", 45)  # Kichik matnlar
         except:
             font_name = ImageFont.load_default()
-            font_other = ImageFont.load_default()
+            font_main = ImageFont.load_default()
+            font_small = ImageFont.load_default()
 
-        # ================= MATNLARNI TO'G'RI JOYGA QO'YISH =================
-        # Ism va familiya (markazga yaqin)
-        draw.text((380, 520), name, fill=(0, 0, 0), font=font_name)
+        # Ism va Familiya
+        draw.text((380, 480), name, fill=(0, 0, 0), font=font_name)
+
+        # Asosiy o‘zbekcha matn (ikki qator)
+        draw.text((240, 660), "ilmiy-fan rivojiga o‘zining dolzarb va sifatli ilmiy maqolasi bilan", 
+                  fill=(0, 0, 0), font=font_main)
+        
+        draw.text((310, 720), "hissa qo‘shganligi uchun ushbu sertifikat bilan taqdirlanadi.", 
+                  fill=(0, 0, 0), font=font_main)
 
         # Jild / Son
-        draw.text((380, 700), volume, fill=(0, 0, 0), font=font_other)
+        draw.text((380, 820), volume, fill=(0, 0, 0), font=font_small)
 
         # Sana
-        draw.text((380, 770), date, fill=(0, 0, 0), font=font_other)
+        draw.text((380, 880), date, fill=(0, 0, 0), font=font_small)
 
-        # Verification Code (pastki qism, qizil rangda, kattaroq)
-        draw.text((320, 1010), code, fill=(180, 0, 0), font=font_other)
+        # Verification Code (pastda, qizil va ko‘zga tashlanadigan)
+        draw.text((300, 1040), code, fill=(180, 0, 0), font=font_main)
 
         filename = f"cert_{code}.png"
         img.save(filename)
         return filename
     except Exception as e:
-        print("Xatolik:", e)
+        print("Rasm yaratish xatosi:", e)
         return None
 
-# ====================== QOLGAN KOD (o'zgarmaydi) ======================
+# ====================== HANDLERLAR ======================
 @dp.message(Command("start"))
 async def start(message: types.Message):
     if message.from_user.id == ADMIN_ID:
@@ -99,6 +113,7 @@ async def process(message: types.Message):
             
             filename = create_certificate(state["name"], text, date, code)
             
+            # Saqlash
             cert = {"name": state["name"], "volume": text, "date": date, "code": code}
             if os.path.exists(DATA_FILE):
                 with open(DATA_FILE, "r", encoding="utf-8") as f:
@@ -110,29 +125,30 @@ async def process(message: types.Message):
                 json.dump(all_data, f, ensure_ascii=False, indent=2)
             
             if filename:
-                await message.answer_photo(types.FSInputFile(filename), caption=f"✅ Sertifikat tayyor!\nKod: `{code}`", parse_mode="Markdown")
+                await message.answer_photo(types.FSInputFile(filename), 
+                                         caption=f"✅ Sertifikat tayyor!\nKod: `{code}`", parse_mode="Markdown")
                 os.remove(filename)
             else:
-                await message.answer("❌ Rasm yaratishda xatolik.")
+                await message.answer("❌ Rasm yaratishda xatolik bo'ldi.")
             
             del user_states[user_id]
             return
 
-    # Tekshirish
+    # Sertifikatni tekshirish
     if len(text) == 9 and text[4] == "-":
         try:
             with open(DATA_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
             if text in data:
                 d = data[text]
-                await message.answer(f"✅ Haqiqiy sertifikat!\n\n👤 {d['name']}\n📚 {d['volume']}\n📅 {d['date']}")
+                await message.answer(f"✅ Sertifikat haqiqiy!\n\n👤 {d['name']}\n📚 {d['volume']}\n📅 {d['date']}")
             else:
-                await message.answer("❌ Kod topilmadi.")
+                await message.answer("❌ Bu kod topilmadi.")
         except:
             await message.answer("❌ Xatolik yuz berdi.")
 
 async def main():
-    print("Bot ishga tushdi...")
+    print("✅ Bot muvaffaqiyatli ishga tushdi!")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
