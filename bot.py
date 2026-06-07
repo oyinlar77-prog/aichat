@@ -33,7 +33,7 @@ main_kb = ReplyKeyboardMarkup(
     resize_keyboard=True,
 )
  
-# ─── Font yo'llari (Railway / Ubuntu Linux) ───────────────────────────────────
+# ── Font yo'llari (Railway / Ubuntu Linux) ────────────────────────────────────
 FONT_ITALIC  = "/usr/share/fonts/truetype/freefont/FreeSansOblique.ttf"
 FONT_REGULAR = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 FONT_BOLD    = "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf"
@@ -45,11 +45,12 @@ def load_font(path: str, size: int) -> ImageFont.FreeTypeFont:
         return ImageFont.load_default()
  
 def generate_code() -> str:
+    """Format: XXXX-X  (4 ta + 1 ta belgi)"""
     chars = string.ascii_uppercase + string.digits
     return (
         "".join(random.choices(chars, k=4))
         + "-"
-        + "".join(random.choices(chars, k=4))
+        + "".join(random.choices(chars, k=1))
     )
  
 def create_certificate(name: str, volume: str, date: str, code: str) -> str | None:
@@ -62,28 +63,26 @@ def create_certificate(name: str, volume: str, date: str, code: str) -> str | No
         draw = ImageDraw.Draw(img)
         W    = img.width   # 1264
  
-        # ── Ism: kursiv, katta, markazda ─────────────────────────────────────
-        font_name = load_font(FONT_ITALIC, 54)
- 
-        # Ism juda uzun bo'lsa shriftni kichiklashtir
-        bbox   = draw.textbbox((0, 0), name, font=font_name)
-        text_w = bbox[2] - bbox[0]
+        # ── Ism: kursiv, markazda, hajmi avtomatik ────────────────────────────
+        font_name = load_font(FONT_ITALIC, 44)
+        bbox      = draw.textbbox((0, 0), name, font=font_name)
+        text_w    = bbox[2] - bbox[0]
         if text_w > W - 280:
-            font_name = load_font(FONT_ITALIC, 42)
-            bbox   = draw.textbbox((0, 0), name, font=font_name)
-            text_w = bbox[2] - bbox[0]
+            font_name = load_font(FONT_ITALIC, 36)
+            bbox      = draw.textbbox((0, 0), name, font=font_name)
+            text_w    = bbox[2] - bbox[0]
  
         name_x = (W - text_w) // 2
-        draw.text((name_x, 455), name, fill=(20, 20, 20), font=font_name)
+        draw.text((name_x, 458), name, fill=(20, 20, 20), font=font_name)
  
         # ── Jild / Son va Sana ────────────────────────────────────────────────
-        font_info = load_font(FONT_REGULAR, 34)
-        draw.text((490, 565), volume, fill=(20, 20, 20), font=font_info)
-        draw.text((430, 610), date,   fill=(20, 20, 20), font=font_info)
+        font_info = load_font(FONT_REGULAR, 28)
+        draw.text((490, 568), volume, fill=(20, 20, 20), font=font_info)
+        draw.text((430, 613), date,   fill=(20, 20, 20), font=font_info)
  
         # ── Verification Code (qizil, qalin) ──────────────────────────────────
-        font_code = load_font(FONT_BOLD, 36)
-        draw.text((403, 706), code, fill=(150, 0, 0), font=font_code)
+        font_code = load_font(FONT_BOLD, 30)
+        draw.text((403, 708), code, fill=(150, 0, 0), font=font_code)
  
         filename = f"cert_{code}.png"
         img.save(filename, format="PNG")
@@ -93,7 +92,7 @@ def create_certificate(name: str, volume: str, date: str, code: str) -> str | No
         print("Sertifikat yaratishda xatolik:", e)
         return None
  
-# ─── Handlers ─────────────────────────────────────────────────────────────────
+# ── Handlers ──────────────────────────────────────────────────────────────────
  
 @dp.message(Command("start"))
 async def start(message: types.Message):
@@ -156,8 +155,8 @@ async def process(message: types.Message):
             del user_states[user_id]
             return
  
-    # ── Sertifikatni tekshirish ────────────────────────────────────────────
-    if len(text) == 9 and text[4] == "-":
+    # ── Sertifikatni tekshirish (format: XXXX-X) ───────────────────────────
+    if len(text) == 6 and text[4] == "-":
         if not os.path.exists(DATA_FILE):
             await message.answer("❌ Hech qanday sertifikat topilmadi.")
             return
@@ -180,7 +179,7 @@ async def process(message: types.Message):
             await message.answer("❌ Xatolik yuz berdi.")
  
  
-# ─── Main ─────────────────────────────────────────────────────────────────────
+# ── Main ──────────────────────────────────────────────────────────────────────
  
 async def main():
     print("✅ Bot ishga tushdi!")
