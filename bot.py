@@ -38,21 +38,17 @@ def create_certificate(name, volume, date, code):
         img = Image.open(TEMPLATE_PATH)
         draw = ImageDraw.Draw(img)
 
-        # Oddiy shriftdan foydalanamiz (Railwayda boshqa shrift yo'q)
-        font_name = ImageFont.load_default()   # Hozircha default
-        font_info = ImageFont.load_default()
+        try:
+            font_name = ImageFont.truetype("arial.ttf", 85)
+            font_info = ImageFont.truetype("arial.ttf", 50)
+        except:
+            font_name = ImageFont.load_default()
+            font_info = ImageFont.load_default()
 
-        # Ism (katta qilishga harakat)
-        draw.text((340, 460), name, fill=(0, 0, 0), font=font_name)
-
-        # Jild / Son
-        draw.text((370, 780), volume, fill=(0, 0, 0), font=font_info)
-
-        # Sana
-        draw.text((370, 850), date, fill=(0, 0, 0), font=font_info)
-
-        # Verification Code
-        draw.text((290, 1040), code, fill=(180, 0, 0), font=font_info)
+        draw.text((360, 460), name, fill=(0, 0, 0), font=font_name)
+        draw.text((375, 780), volume, fill=(0, 0, 0), font=font_info)
+        draw.text((375, 850), date, fill=(0, 0, 0), font=font_info)
+        draw.text((295, 1040), code, fill=(180, 0, 0), font=font_info)
 
         filename = f"cert_{code}.png"
         img.save(filename)
@@ -61,7 +57,6 @@ def create_certificate(name, volume, date, code):
         print("Xatolik:", e)
         return None
 
-# Qolgan kodlar...
 @dp.message(Command("start"))
 async def start(message: types.Message):
     if message.from_user.id == ADMIN_ID:
@@ -71,19 +66,64 @@ async def start(message: types.Message):
 
 @dp.message(lambda m: m.text == "🛠 Sertifikat yaratish" and m.from_user.id == ADMIN_ID)
 async def create_start(message: types.Message):
-    user_states[message.from_user.id] = {"step": "name"}
+    user_states[message.from_user.id] = "name"
     await message.answer("👤 Muallifning to‘liq ism va familiyasini yozing:")
 
 @dp.message()
 async def process(message: types.Message):
-    # ... (oldingi kodni saqlab qoldim, joy tejash uchun qisqartirdim)
-    # To'liq kod kerak bo'lsa ayting, qolgan qismini ham beraman.
+    user_id = message.from_user.id
+    text = message.text.strip()
 
-    # Hozircha faqat asosiy qismni sinab ko'ramiz
-    pass  # To'liq kodni oldingi xabarlardan oling
+    if user_id in user_states:
+        current_state = user_states[user_id]
+
+        if current_state == "name":
+            user_states[user_id] = {"step": "volume", "name": text}
+            await message.answer("📚 Jild / Son kiriting (masalan: 1(3)):")
+            return
+
+        elif current_state.get("step") == "volume":
+            volume = text
+            name = current_state["name"]
+            code = generate_code()
+            date = datetime.now().strftime("%d.%m.%Y")
+
+            filename = create_certificate(name, volume, date, code)
+
+            cert = {"name": name, "volume": volume, "date": date, "code": code}
+            if os.path.exists(DATA_FILE):
+                with open(DATA_FILE, "r", encoding="utf-8") as f:
+                    all_data = json.load(f)
+            else:
+                all_data = {}
+            all_data[code] = cert
+            with open(DATA_FILE, "w", encoding="utf-8") as f:
+                json.dump(all_data, f, ensure_ascii=False, indent=2)
+
+            if filename:
+                await message.answer_photo(types.FSInputFile(filename), caption=f"✅ Sertifikat tayyor!\nKod: `{code}`", parse_mode="Markdown")
+                os.remove(filename)
+            else:
+                await message.answer("❌ Rasm yaratishda xatolik bo'ldi.")
+
+            del user_states[user_id]
+            return
+
+    # Tekshirish
+    if len(text) == 9 and text[4] == "-":
+        try:
+            with open(DATA_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if text in data:
+                d = data[text]
+                await message.answer(f"✅ Sertifikat haqiqiy!\n\n👤 {d['name']}\n📚 {d['volume']}\n📅 {d['date']}")
+            else:
+                await message.answer("❌ Bu kod topilmadi.")
+        except:
+            await message.answer("❌ Xatolik yuz berdi.")
 
 async def main():
-    print("Bot ishga tushdi...")
+    print("✅ Bot ishga tushdi!")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
