@@ -38,18 +38,24 @@ def create_certificate(name, volume, date, code):
         img = Image.open(TEMPLATE_PATH)
         draw = ImageDraw.Draw(img)
 
-        # Katta shriftlar
-        font_name = ImageFont.truetype("arial.ttf", 92)
-        font_info = ImageFont.truetype("arial.ttf", 55)
+        # Shriftlar
+        try:
+            font_name = ImageFont.truetype("arial.ttf", 95)   # Ism uchun katta
+            font_info = ImageFont.truetype("arial.ttf", 58)   # Sana va Vol/No uchun
+        except:
+            font_name = ImageFont.load_default()
+            font_info = ImageFont.load_default()
 
-        # Ism (katta va markazda)
-        draw.text((340, 455), name, fill=(0, 0, 0), font=font_name)
+        # ================= ANIQ JOYLASHUV =================
+        
+        # Ism va Familiya (katta va markazda)
+        draw.text((355, 445), name, fill=(0, 0, 0), font=font_name)
 
         # Jild / Son
-        draw.text((375, 780), volume, fill=(0, 0, 0), font=font_info)
+        draw.text((375, 785), volume, fill=(0, 0, 0), font=font_info)
 
         # Sana
-        draw.text((375, 850), date, fill=(0, 0, 0), font=font_info)
+        draw.text((375, 855), date, fill=(0, 0, 0), font=font_info)
 
         # Verification Code
         draw.text((290, 1040), code, fill=(180, 0, 0), font=font_info)
@@ -58,7 +64,7 @@ def create_certificate(name, volume, date, code):
         img.save(filename)
         return filename
     except Exception as e:
-        print("XATOLIK:", str(e))
+        print("Xatolik:", e)
         return None
 
 # ====================== QOLGAN KOD ======================
@@ -85,7 +91,7 @@ async def process(message: types.Message):
         if state.get("step") == "name":
             state["name"] = text
             state["step"] = "volume"
-            await message.answer("📚 Jild / Son kiriting:")
+            await message.answer("📚 Jild / Son kiriting (masalan: 1(3)):")
             return
             
         elif state.get("step") == "volume":
@@ -106,7 +112,8 @@ async def process(message: types.Message):
                 json.dump(all_data, f, ensure_ascii=False, indent=2)
             
             if filename:
-                await message.answer_photo(types.FSInputFile(filename), caption=f"✅ Sertifikat tayyor!\nKod: `{code}`", parse_mode="Markdown")
+                await message.answer_photo(types.FSInputFile(filename), 
+                                         caption=f"✅ Sertifikat tayyor!\nKod: `{code}`", parse_mode="Markdown")
                 os.remove(filename)
             else:
                 await message.answer("❌ Rasm yaratishda xatolik.")
@@ -120,14 +127,14 @@ async def process(message: types.Message):
                 data = json.load(f)
             if text in data:
                 d = data[text]
-                await message.answer(f"✅ Haqiqiy!\n👤 {d['name']}\n📚 {d['volume']}\n📅 {d['date']}")
+                await message.answer(f"✅ Sertifikat haqiqiy!\n\n👤 {d['name']}\n📚 {d['volume']}\n📅 {d['date']}")
             else:
-                await message.answer("❌ Kod topilmadi.")
+                await message.answer("❌ Bu kod topilmadi.")
         except:
-            await message.answer("❌ Xatolik.")
+            await message.answer("❌ Xatolik yuz berdi.")
 
 async def main():
-    print("Bot ishga tushdi!")
+    print("✅ Bot ishga tushdi!")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
