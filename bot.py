@@ -40,8 +40,8 @@ def create_certificate(name, volume, date, code):
 
         # Shriftlar
         try:
-            font_name = ImageFont.truetype("arial.ttf", 95)   # Ism uchun katta
-            font_info = ImageFont.truetype("arial.ttf", 58)   # Sana va Vol/No uchun
+            font_name = ImageFont.truetype("arial.ttf", 955)   # Ism uchun katta
+            font_info = ImageFont.truetype("arial.ttf", 585)   # Sana va Vol/No uchun
         except:
             font_name = ImageFont.load_default()
             font_info = ImageFont.load_default()
