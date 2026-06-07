@@ -40,25 +40,25 @@ def create_certificate(name, volume, date, code):
 
         # Kattaroq shriftlar
         try:
-            font_name = ImageFont.truetype("arial.ttf", 85)   # Ism uchun juda katta
-            font_info = ImageFont.truetype("arial.ttf", 52)   # Jild, Sana, Code uchun
+            font_name = ImageFont.truetype("arial.ttf", 92)   # Ism uchun juda katta
+            font_info = ImageFont.truetype("arial.ttf", 55)   # Sana va Vol/No uchun
         except:
             font_name = ImageFont.load_default()
             font_info = ImageFont.load_default()
 
-        # ================= ANIQ JOYLASHUV =================
+        # ================= YANGILANGAN JOYLASHUV =================
 
-        # Ism va Familiya (markazda, katta)
-        draw.text((370, 490), name, fill=(0, 0, 0), font=font_name)
+        # Ism va Familiya (katta va markazga yaqin)
+        draw.text((355, 465), name, fill=(0, 0, 0), font=font_name)
 
         # Jild / Son
-        draw.text((380, 780), volume, fill=(0, 0, 0), font=font_info)
+        draw.text((380, 795), volume, fill=(0, 0, 0), font=font_info)
 
         # Sana
-        draw.text((380, 850), date, fill=(0, 0, 0), font=font_info)
+        draw.text((380, 865), date, fill=(0, 0, 0), font=font_info)
 
         # Verification Code
-        draw.text((295, 1035), code, fill=(180, 0, 0), font=font_info)
+        draw.text((295, 1040), code, fill=(180, 0, 0), font=font_info)
 
         filename = f"cert_{code}.png"
         img.save(filename)
@@ -67,7 +67,7 @@ def create_certificate(name, volume, date, code):
         print("Xatolik:", e)
         return None
 
-# ====================== HANDLERLAR ======================
+# ====================== QOLGAN KOD ======================
 @dp.message(Command("start"))
 async def start(message: types.Message):
     if message.from_user.id == ADMIN_ID:
@@ -121,7 +121,6 @@ async def process(message: types.Message):
             del user_states[user_id]
             return
 
-    # Tekshirish
     if len(text) == 9 and text[4] == "-":
         try:
             with open(DATA_FILE, "r", encoding="utf-8") as f:
