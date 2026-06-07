@@ -38,27 +38,27 @@ def create_certificate(name, volume, date, code):
         img = Image.open(TEMPLATE_PATH)
         draw = ImageDraw.Draw(img)
 
-        # Kattaroq shriftlar
+        # Shriftlar
         try:
-            font_name = ImageFont.truetype("arial.ttf", 92)   # Ism uchun juda katta
-            font_info = ImageFont.truetype("arial.ttf", 55)   # Sana va Vol/No uchun
+            font_name = ImageFont.truetype("arial.ttf", 95)   # Ism uchun katta
+            font_info = ImageFont.truetype("arial.ttf", 58)   # Sana va Vol/No uchun
         except:
             font_name = ImageFont.load_default()
             font_info = ImageFont.load_default()
 
-        # ================= YANGILANGAN JOYLASHUV =================
-
-        # Ism va Familiya (katta va markazga yaqin)
-        draw.text((355, 465), name, fill=(0, 0, 0), font=font_name)
+        # ================= ANIQ JOYLASHUV =================
+        
+        # Ism va Familiya (katta va markazda)
+        draw.text((355, 445), name, fill=(0, 0, 0), font=font_name)
 
         # Jild / Son
-        draw.text((380, 795), volume, fill=(0, 0, 0), font=font_info)
+        draw.text((375, 785), volume, fill=(0, 0, 0), font=font_info)
 
         # Sana
-        draw.text((380, 865), date, fill=(0, 0, 0), font=font_info)
+        draw.text((375, 855), date, fill=(0, 0, 0), font=font_info)
 
         # Verification Code
-        draw.text((295, 1040), code, fill=(180, 0, 0), font=font_info)
+        draw.text((290, 1040), code, fill=(180, 0, 0), font=font_info)
 
         filename = f"cert_{code}.png"
         img.save(filename)
