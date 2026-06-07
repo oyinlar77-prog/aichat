@@ -38,21 +38,23 @@ def create_certificate(name, volume, date, code):
         img = Image.open(TEMPLATE_PATH)
         draw = ImageDraw.Draw(img)
 
-        # Railwayda ishlashi uchun sodda usul
-        font_large = ImageFont.load_default()   # Hozircha default
-        font_medium = ImageFont.load_default()
+        # Yangi usul - matnni bir necha marta chizish orqali kattalashtirish
+        def draw_big_text(text, x, y, fill=(0, 0, 0), thickness=3):
+            for i in range(-thickness, thickness+1):
+                for j in range(-thickness, thickness+1):
+                    draw.text((x+i, y+j), text, fill=fill)
 
-        # Ism-familya (eng katta)
-        draw.text((340, 440), name, fill=(0, 0, 0), font=font_large)
+        # Ism-familya (juda katta)
+        draw_big_text(name, 340, 440, fill=(0, 0, 0), thickness=4)
 
         # Jild / Son
-        draw.text((370, 760), volume, fill=(0, 0, 0), font=font_medium)
+        draw_big_text(volume, 370, 780, fill=(0, 0, 0), thickness=2)
 
         # Sana
-        draw.text((370, 830), date, fill=(0, 0, 0), font=font_medium)
+        draw_big_text(date, 370, 850, fill=(0, 0, 0), thickness=2)
 
         # Verification Code
-        draw.text((290, 1030), code, fill=(180, 0, 0), font=font_medium)
+        draw_big_text(code, 290, 1035, fill=(180, 0, 0), thickness=3)
 
         filename = f"cert_{code}.png"
         img.save(filename)
@@ -61,7 +63,7 @@ def create_certificate(name, volume, date, code):
         print("Xatolik:", e)
         return None
 
-# ====================== HANDLERLAR ======================
+# ====================== QOLGAN KOD ======================
 @dp.message(Command("start"))
 async def start(message: types.Message):
     if message.from_user.id == ADMIN_ID:
