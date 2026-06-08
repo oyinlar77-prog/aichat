@@ -45,44 +45,55 @@ def load_font(path: str, size: int) -> ImageFont.FreeTypeFont:
         return ImageFont.load_default()
  
 def generate_code() -> str:
-    """Format: XXXX-X  (4 ta + 1 ta belgi)"""
+    """Format: XXXX-X"""
     chars = string.ascii_uppercase + string.digits
-    return (
-        "".join(random.choices(chars, k=4))
-        + "-"
-        + "".join(random.choices(chars, k=1))
-    )
+    return "".join(random.choices(chars, k=4)) + "-" + random.choice(chars)
  
 def create_certificate(name: str, volume: str, date: str, code: str) -> str | None:
     """
     Sertifikat rasmini yaratadi.
-    Template o'lchami: 1264 x 816 px
+    Template o'lchami: 1248 x 816 px
+ 
+    Koordinatalar pixel-perfect o'lchangan:
+      Jild / Son label  : y=560-594, x_end=474  → qiymat x=482, y_center=577
+      Sana label        : y=614-631, x_end=423  → qiymat x=431, y_center=622
+      Verification Code : y=704-744, x_end=387  → qiymat x=395, y_center=724
     """
     try:
         img  = Image.open(TEMPLATE_PATH).convert("RGB")
         draw = ImageDraw.Draw(img)
-        W    = img.width   # 1264
+        W    = img.width  # 1248
  
-        # ── Ism: kursiv, markazda, hajmi avtomatik ────────────────────────────
-        font_name = load_font(FONT_ITALIC, 44)
-        bbox      = draw.textbbox((0, 0), name, font=font_name)
-        text_w    = bbox[2] - bbox[0]
+        font_name = load_font(FONT_ITALIC,  44)
+        font_info = load_font(FONT_REGULAR, 28)
+        font_code = load_font(FONT_BOLD,    28)
+ 
+        # ── Ism: kursiv, markazda ─────────────────────────────────────────────
+        bbox   = draw.textbbox((0, 0), name, font=font_name)
+        text_w = bbox[2] - bbox[0]
         if text_w > W - 280:
             font_name = load_font(FONT_ITALIC, 36)
-            bbox      = draw.textbbox((0, 0), name, font=font_name)
-            text_w    = bbox[2] - bbox[0]
+            bbox   = draw.textbbox((0, 0), name, font=font_name)
+            text_w = bbox[2] - bbox[0]
  
         name_x = (W - text_w) // 2
         draw.text((name_x, 458), name, fill=(20, 20, 20), font=font_name)
  
-        # ── Jild / Son va Sana ────────────────────────────────────────────────
-        font_info = load_font(FONT_REGULAR, 28)
-        draw.text((490, 568), volume, fill=(20, 20, 20), font=font_info)
-        draw.text((430, 613), date,   fill=(20, 20, 20), font=font_info)
+        # ── Jild / Son ────────────────────────────────────────────────────────
+        b       = draw.textbbox((0, 0), volume, font=font_info)
+        h_info  = b[3] - b[1]
+        jild_y  = 577 - h_info // 2
+        draw.text((482, jild_y), volume, fill=(20, 20, 20), font=font_info)
  
-        # ── Verification Code (qizil, qalin) ──────────────────────────────────
-        font_code = load_font(FONT_BOLD, 30)
-        draw.text((403, 708), code, fill=(150, 0, 0), font=font_code)
+        # ── Sana ──────────────────────────────────────────────────────────────
+        sana_y  = 622 - h_info // 2
+        draw.text((431, sana_y), date, fill=(20, 20, 20), font=font_info)
+ 
+        # ── Verification Code ─────────────────────────────────────────────────
+        bc      = draw.textbbox((0, 0), code, font=font_code)
+        h_code  = bc[3] - bc[1]
+        code_y  = 724 - h_code // 2
+        draw.text((395, code_y), code, fill=(150, 0, 0), font=font_code)
  
         filename = f"cert_{code}.png"
         img.save(filename, format="PNG")
@@ -123,22 +134,19 @@ async def process(message: types.Message):
             return
  
         if isinstance(state, dict) and state.get("step") == "volume":
-            volume = text
-            name   = state["name"]
-            code   = generate_code()
-            date   = datetime.now().strftime("%d.%m.%Y")
- 
+            volume   = text
+            name     = state["name"]
+            code     = generate_code()
+            date     = datetime.now().strftime("%d.%m.%Y")
             filename = create_certificate(name, volume, date, code)
  
-            # JSON ga saqlash
             all_data = {}
             if os.path.exists(DATA_FILE):
                 with open(DATA_FILE, "r", encoding="utf-8") as f:
                     all_data = json.load(f)
  
-            all_data[code] = {
-                "name": name, "volume": volume, "date": date, "code": code
-            }
+            all_data[code] = {"name": name, "volume": volume, "date": date, "code": code}
+ 
             with open(DATA_FILE, "w", encoding="utf-8") as f:
                 json.dump(all_data, f, ensure_ascii=False, indent=2)
  
@@ -155,7 +163,7 @@ async def process(message: types.Message):
             del user_states[user_id]
             return
  
-    # ── Sertifikatni tekshirish (format: XXXX-X) ───────────────────────────
+    # ── Sertifikatni tekshirish (format: XXXX-X, uzunlik 6) ───────────────
     if len(text) == 6 and text[4] == "-":
         if not os.path.exists(DATA_FILE):
             await message.answer("❌ Hech qanday sertifikat topilmadi.")
@@ -187,4 +195,3 @@ async def main():
  
 if __name__ == "__main__":
     asyncio.run(main())
- 
