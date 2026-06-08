@@ -1,4 +1,3 @@
-
 import asyncio
 import json
 import os
@@ -138,7 +137,8 @@ async def process(message: types.Message):
             if filename:
                 caption = (
                     "<a href='https://t.me/GJCDI_Certificate_Bot'>Glob Journal</a> "
-                    "orqali tekshirib olishingiz mumkin"
+                    "orqali tekshirib olishingiz mumkin\n"
+                    f"Kod: <code>{code}</code>"
                 )
  
                 # Adminga yuborish
@@ -199,4 +199,3 @@ async def main():
  
 if __name__ == "__main__":
     asyncio.run(main())
- 
